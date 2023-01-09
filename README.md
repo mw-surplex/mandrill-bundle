@@ -11,7 +11,7 @@ Installation
 
 `composer require qferr/mandrill-bundle`
 
-*Note that the bundle supports Symfony 4/5 and PHP 7.2+*
+*Note that the bundle supports Symfony 6 and PHP 8.*
 
 ### Enable the bundle
 Your bundle should be automatically enabled by Flex. 
