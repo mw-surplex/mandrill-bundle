@@ -2,6 +2,7 @@
 
 namespace Qferrer\Tests\Symfony\MandrillBundle\Handler;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Qferrer\Symfony\MandrillBundle\Event\MessageEvent;
 use Qferrer\Symfony\MandrillBundle\Exception\BadRequestHttpException;
@@ -12,17 +13,10 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class WebhookHandlerTest extends TestCase
 {
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject
-     */
-    private $eventDispatcher;
+    private MockObject $eventDispatcher;
+    private WebhookHandler $webhookHandler;
 
-    /**
-     * @var WebhookHandler
-     */
-    private $webhookHandler;
-
-    public function setUp()
+    public function setUp(): void
     {
         $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $this->webhookHandler = new WebhookHandler($this->eventDispatcher);
@@ -38,15 +32,16 @@ class WebhookHandlerTest extends TestCase
     {
         $events = json_decode(file_get_contents(__DIR__ . '/../fixtures/webhooks/all.json'), true);
 
-        foreach ($events as $i => $event) {
-            $eventName = MessageEvents::PREFIX . '.' . $event['event'];
-            $this->eventDispatcher
-                ->expects($this->at($i))
-                ->method('dispatch')
-                ->with($this->callback(function (MessageEvent $event) use($eventName) {
-                    return $event->getName() === $eventName;
-                }), $eventName);
-        }
+        $eventsParams = array_map(fn ($event) => [
+            $this->callback(function (MessageEvent $e) use($event) {
+                return $e->getName() === MessageEvents::PREFIX . '.' . $event['event'];
+            }), 
+            MessageEvents::PREFIX . '.' . $event['event']], $events);
+            
+        $this->eventDispatcher
+            ->expects($this->exactly(9))
+            ->method('dispatch')
+            ->withConsecutive(...$eventsParams);
 
         $this->webhookHandler->handleRequest($this->createWebhookRequest($events));
     }
